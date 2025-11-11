@@ -85,6 +85,11 @@
     }
   }
 
+  .tm2-result-card {
+    background: linear-gradient(135deg, rgba(255, 247, 237, 0.95), rgba(255, 255, 255, 0.95));
+    border-color: rgba(251, 146, 60, 0.35);
+  }
+
   .tm2-card__header {
     display: flex;
     justify-content: space-between;
@@ -93,6 +98,11 @@
     border-bottom: 1px solid rgba(226, 232, 240, 0.8);
     align-items: center;
     background: linear-gradient(120deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.05));
+
+    &--result {
+      background: linear-gradient(120deg, rgba(249, 115, 22, 0.12), rgba(236, 138, 0, 0.08));
+      border-bottom-color: rgba(248, 200, 151, 0.8);
+    }
   }
 
   .tm2-card__heading {
@@ -111,6 +121,11 @@
     background: #eff6ff;
     color: #2563eb;
     font-size: 2rem;
+
+    &--result {
+      background: rgba(249, 115, 22, 0.15);
+      color: #d97706;
+    }
   }
 
   .tm2-card__meta {
