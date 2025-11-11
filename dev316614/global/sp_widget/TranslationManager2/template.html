@@ -5,7 +5,7 @@
         <span class="tm2-card__icon fa fa-language" aria-hidden="true"></span>
         <div>
           <h2 class="tm2-card__title">Translation Helper</h2>
-          <p class="tm2-card__subtitle">Search field labels, choice options, and UI messages by translated text</p>
+          <p class="tm2-card__subtitle">Search field labels, choice options, UI messages, and long-form text by translated copy</p>
         </div>
       </div>
       <div class="tm2-card__meta">
@@ -36,6 +36,15 @@
         <span class="fa fa-commenting-o" aria-hidden="true"></span>
         <span>Messages</span>
       </button>
+      <button
+        type="button"
+        class="tm2-source-toggle__btn"
+        ng-class="{'active': c.state.sourceType === 'translated'}"
+        ng-click="c.setSourceType('translated')"
+        ng-disabled="c.state.isSearching">
+        <span class="fa fa-columns" aria-hidden="true"></span>
+        <span>Long-form text</span>
+      </button>
     </div>
 
     <form class="tm2-search" ng-submit="c.search()">
@@ -53,16 +62,24 @@
             ng-disabled="c.state.isSearching" />
         </div>
 
-        <div class="form-group tm2-search-input" ng-class="{'tm2-search-input--full': c.state.sourceType === 'message'}">
+        <div class="form-group tm2-search-input" ng-class="{'tm2-search-input--full': c.state.sourceType !== 'table'}">
           <label for="tm2-search-input">
-            {{c.state.sourceType === 'message' ? 'Message text (exact match)' : 'Translated text'}}
+            {{c.state.sourceType === 'message'
+              ? 'Message text (exact match)'
+              : (c.state.sourceType === 'translated'
+                ? 'Long-form text (contains match)'
+                : 'Translated text')}}
           </label>
           <div class="input-group tm2-search__input">
             <input
               id="tm2-search-input"
               type="text"
               class="form-control"
-              ng-attr-placeholder="{{c.state.sourceType === 'message' ? 'e.g. Systemegenskaper' : 'e.g. kort beskrivelse'}}"
+              ng-attr-placeholder="{{c.state.sourceType === 'message'
+                ? 'e.g. Systemegenskaper'
+                : (c.state.sourceType === 'translated'
+                  ? 'e.g. Mine favoritter'
+                  : 'e.g. kort beskrivelse')}}"
               ng-model="c.state.searchTerm"
               ng-disabled="c.state.isSearching" />
             <span class="input-group-btn">
@@ -76,6 +93,10 @@
           <small class="tm2-message-mode-hint" ng-if="c.state.sourceType === 'message'">
             <span class="fa fa-info-circle" aria-hidden="true"></span>
             Enter the exact localized copy you want to edit.
+          </small>
+          <small class="tm2-message-mode-hint" ng-if="c.state.sourceType === 'translated'">
+            <span class="fa fa-info-circle" aria-hidden="true"></span>
+            Search matches longer texts (surveys, greetings, introductions, etc.).
           </small>
         </div>
       </div>
@@ -103,26 +124,32 @@
             ng-class="{
               'fa-list-ul': result.recordType === 'choice',
               'fa-commenting-o': result.recordType === 'message',
+              'fa-columns': result.recordType === 'translated',
               'fa-tag': !result.recordType || result.recordType === 'field'
             }"
             aria-hidden="true"></span>
           <div class="tm2-entry-title">
-            <h3 ng-bind="result.recordType === 'message' ? (result.message || '(no message)') : (result.label || '(no label)')"></h3>
+            <h3 ng-bind="result.recordType === 'message'
+              ? (result.message || '(no message)')
+              : (result.recordType === 'translated'
+                ? (result.value || '(no value)')
+                : (result.label || '(no label)'))"></h3>
             <small ng-if="result.recordType === 'choice'">
               <span ng-bind="result.element || '(no element)'"></span>
               <span> value </span>
               <span class="tm2-choice-value" ng-bind="result.value || 'n/a'"></span>
             </small>
-            <small ng-if="result.recordType === 'message' && result.name">
-              <span class="tm2-message-key" ng-bind="result.name"></span>
+            <small ng-if="result.recordType === 'translated'">
+              <span ng-bind="result.tablename || '(no table)'"></span>
+              <span ng-if="result.fieldname"> · <span ng-bind="result.fieldname"></span></span>
             </small>
-            <small ng-if="result.recordType !== 'choice' && result.recordType !== 'message'" ng-bind="result.element"></small>
+            <small ng-if="(!result.recordType || result.recordType === 'field') && result.element" ng-bind="result.element"></small>
           </div>
         </div>
         <div class="tm2-entry-meta">
-          <span class="tm2-chip tm2-chip--ghost" title="Source" ng-bind="result.recordType === 'choice' ? 'Choice' : (result.recordType === 'message' ? 'Message' : 'Field label')"></span>
-          <span class="tm2-chip" title="Table" ng-bind="result.name"></span>
-          <span class="tm2-chip" title="Key" ng-if="result.recordType === 'message' && result.key" ng-bind="result.key"></span>
+          <span class="tm2-chip tm2-chip--ghost" title="Source" ng-bind="result.recordType === 'choice' ? 'Choice' : (result.recordType === 'message' ? 'Message' : (result.recordType === 'translated' ? 'Long-form text' : 'Field label'))"></span>
+          <span class="tm2-chip" title="Table" ng-if="result.recordType !== 'message' && result.name" ng-bind="result.name"></span>
+          <span class="tm2-chip" title="Field" ng-if="result.recordType === 'translated' && result.fieldname" ng-bind="result.fieldname"></span>
           <span class="tm2-chip" title="Language" ng-bind="result.language || 'n/a'"></span>
           <span class="tm2-chip" title="Scope" ng-bind="result.scope || 'n/a'"></span>
         </div>
@@ -158,6 +185,18 @@
             <div class="form-group tm2-field--wide">
               <label>Message</label>
               <textarea class="form-control" rows="3" ng-model="result.__draft.message" ng-disabled="result.__saving"></textarea>
+            </div>
+          </div>
+        </div>
+        <div ng-switch-when="translated">
+          <div class="tm2-section-label">
+            <strong>Portal translation</strong>
+            <span>Update the localized value shown on portal menus and widgets.</span>
+          </div>
+          <div class="tm2-field-grid">
+            <div class="form-group tm2-field--wide">
+              <label>Value</label>
+              <textarea class="form-control" rows="3" ng-model="result.__draft.value" ng-disabled="result.__saving"></textarea>
             </div>
           </div>
         </div>

@@ -51,6 +51,14 @@ function handleAction() {
       return;
     }
 
+    if (sourceType === 'translated') {
+      data.appliedTables = [];
+      var translatedRecords = searchTranslatedText(term, data.maxResults);
+      data.results = translatedRecords;
+      data.errorMessage = '';
+      return;
+    }
+
     if (!tableName) {
       data.errorMessage = 'Provide a table to search within.';
       return;
@@ -78,6 +86,8 @@ function handleAction() {
       data.updateResponse = updateChoice(input.record);
     } else if (recordType === 'message') {
       data.updateResponse = updateMessage(input.record);
+    } else if (recordType === 'translated') {
+      data.updateResponse = updateTranslatedText(input.record);
     } else {
       data.updateResponse = updateDocumentation(input.record);
     }
@@ -146,6 +156,25 @@ function searchMessages(term, limit) {
   }
 
   logInfo('TM2 message search returned ' + records.length + ' records.');
+  return records;
+}
+
+function searchTranslatedText(term, limit) {
+  var records = [];
+  var gr = new GlideRecordSecure('sys_translated_text');
+  var encodedQuery = buildTranslatedSearchQuery(term);
+
+  gr.addEncodedQuery(encodedQuery);
+  gr.orderBy('tablename');
+  gr.orderBy('fieldname');
+  gr.setLimit(limit || 50);
+  gr.query();
+
+  while (gr.next()) {
+    records.push(serializeTranslatedRecord(gr));
+  }
+
+  logInfo('TM2 translated text search returned ' + records.length + ' records.');
   return records;
 }
 
@@ -287,6 +316,52 @@ function updateMessage(payload) {
   return response;
 }
 
+function updateTranslatedText(payload) {
+  var response = {
+    success: false,
+    message: 'Unexpected error.'
+  };
+
+  if (!payload || !payload.sys_id) {
+    response.message = 'Missing record identifier.';
+    return response;
+  }
+
+  var gr = new GlideRecord('sys_translated_text');
+  if (!gr.get(payload.sys_id)) {
+    response.message = 'Record not found.';
+    return response;
+  }
+
+  var editableFields = ['value'];
+  var hasChanges = false;
+
+  editableFields.forEach(function(field) {
+    if (payload.hasOwnProperty(field) && payload[field] !== undefined && payload[field] !== null) {
+      gr.setValue(field, payload[field]);
+      hasChanges = true;
+    }
+  });
+
+  if (!hasChanges) {
+    response.message = 'No changes detected.';
+    return response;
+  }
+
+  gr.setWorkflow(false);
+  var updateResult = gr.update();
+
+  if (!updateResult) {
+    response.message = 'Unable to update record.';
+    return response;
+  }
+
+  response.success = true;
+  response.message = 'Translation updated.';
+  response.record = serializeTranslatedRecord(gr);
+  return response;
+}
+
 function serializeDocumentationRecord(gr) {
   return {
     recordType: 'field',
@@ -335,6 +410,22 @@ function serializeMessageRecord(gr) {
   };
 }
 
+function serializeTranslatedRecord(gr) {
+  return {
+    recordType: 'translated',
+    sourceTable: 'sys_translated_text',
+    editableFields: ['value'],
+    sys_id: gr.getUniqueValue(),
+    tablename: gr.getValue('tablename') || '',
+    fieldname: gr.getValue('fieldname') || '',
+    documentkey: gr.getValue('documentkey') || '',
+    value: gr.getValue('value') || '',
+    language: gr.getValue('language') || '',
+    scope: resolveScope(gr),
+    name: gr.getValue('tablename') || ''
+  };
+}
+
 function resolveScope(gr) {
   if (!gr.isValidField('sys_scope')) {
     return '';
@@ -370,6 +461,11 @@ function buildChoiceSearchQuery(term) {
   return 'labelLIKE' + encodedTerm;
 }
 
+function buildTranslatedSearchQuery(term) {
+  var encodedTerm = term.replace(/\^/g, '');
+  return 'valueLIKE' + encodedTerm;
+}
+
 function sanitizeSearchTerm(term) {
   if (!term) {
     return '';
@@ -396,7 +492,13 @@ function sanitizeSourceType(sourceType) {
     return 'table';
   }
   var normalized = String(sourceType).toLowerCase();
-  return normalized === 'message' ? 'message' : 'table';
+  if (normalized === 'message') {
+    return 'message';
+  }
+  if (normalized === 'translated') {
+    return 'translated';
+  }
+  return 'table';
 }
 
 function logInfo(msg) {

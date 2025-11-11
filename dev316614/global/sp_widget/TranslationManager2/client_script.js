@@ -26,7 +26,7 @@ api.controller = function($scope) {
       c.state.results = [];
       return;
     }
-    if (sourceType !== 'message' && !tableName) {
+    if (sourceType === 'table' && !tableName) {
       c.state.error = 'Select a table to search.';
       c.state.results = [];
       return;
@@ -79,12 +79,13 @@ api.controller = function($scope) {
   };
 
   c.setSourceType = function(type) {
-    var normalized = type === 'message' ? 'message' : 'table';
+    var allowed = ['table', 'message', 'translated'];
+    var normalized = allowed.indexOf(type) > -1 ? type : 'table';
     if (c.state.sourceType === normalized) {
       return;
     }
     c.state.sourceType = normalized;
-    if (normalized === 'message') {
+    if (normalized !== 'table') {
       c.state.tableName = '';
     }
   };
