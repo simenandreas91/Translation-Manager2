@@ -53,12 +53,20 @@ function handleAction() {
     data.appliedTables = tablesToQuery;
     logInfo('TM2 tables considered: ' + tablesToQuery.join(', '));
 
-    data.results = searchDocumentation(term, tablesToQuery, data.maxResults);
+    var documentationRecords = searchDocumentation(term, tablesToQuery, data.maxResults);
+    var choiceLimit = Math.max(10, Math.floor((data.maxResults || 50) / 2));
+    var choiceRecords = searchChoices(term, tablesToQuery, choiceLimit);
+    data.results = documentationRecords.concat(choiceRecords);
     data.errorMessage = '';
   }
 
   if (input.action === 'update') {
-    data.updateResponse = updateDocumentation(input.record);
+    var recordType = (input.record && input.record.recordType) || '';
+    if (recordType === 'choice') {
+      data.updateResponse = updateChoice(input.record);
+    } else {
+      data.updateResponse = updateDocumentation(input.record);
+    }
   }
 }
 
@@ -78,10 +86,34 @@ function searchDocumentation(term, tableNames, limit) {
   gr.query();
 
   while (gr.next()) {
-    records.push(serializeRecord(gr));
+    records.push(serializeDocumentationRecord(gr));
   }
 
   logInfo('TM2 search returned ' + records.length + ' records.');
+  return records;
+}
+
+function searchChoices(term, tableNames, limit) {
+  var records = [];
+  var gr = new GlideRecordSecure('sys_choice');
+  var encodedQuery = buildChoiceSearchQuery(term);
+
+  if (tableNames && tableNames.length) {
+    gr.addQuery('name', 'IN', tableNames.join(','));
+  }
+  gr.addEncodedQuery(encodedQuery);
+  logInfo('TM2 choice encoded query: ' + encodedQuery);
+  gr.orderBy('name');
+  gr.orderBy('element');
+  gr.orderBy('value');
+  gr.setLimit(limit || 50);
+  gr.query();
+
+  while (gr.next()) {
+    records.push(serializeChoiceRecord(gr));
+  }
+
+  logInfo('TM2 choice search returned ' + records.length + ' records.');
   return records;
 }
 
@@ -127,12 +159,61 @@ function updateDocumentation(payload) {
 
   response.success = true;
   response.message = 'Translation updated.';
-  response.record = serializeRecord(gr);
+  response.record = serializeDocumentationRecord(gr);
   return response;
 }
 
-function serializeRecord(gr) {
+function updateChoice(payload) {
+  var response = {
+    success: false,
+    message: 'Unexpected error.'
+  };
+
+  if (!payload || !payload.sys_id) {
+    response.message = 'Missing record identifier.';
+    return response;
+  }
+
+  var gr = new GlideRecord('sys_choice');
+  if (!gr.get(payload.sys_id)) {
+    response.message = 'Record not found.';
+    return response;
+  }
+
+  var editableFields = ['label'];
+  var hasChanges = false;
+
+  editableFields.forEach(function(field) {
+    if (payload.hasOwnProperty(field) && payload[field] !== undefined && payload[field] !== null) {
+      gr.setValue(field, payload[field]);
+      hasChanges = true;
+    }
+  });
+
+  if (!hasChanges) {
+    response.message = 'No changes detected.';
+    return response;
+  }
+
+  gr.setWorkflow(false);
+  var updateResult = gr.update();
+
+  if (!updateResult) {
+    response.message = 'Unable to update record.';
+    return response;
+  }
+
+  response.success = true;
+  response.message = 'Translation updated.';
+  response.record = serializeChoiceRecord(gr);
+  return response;
+}
+
+function serializeDocumentationRecord(gr) {
   return {
+    recordType: 'field',
+    sourceTable: 'sys_documentation',
+    editableFields: ['label', 'plural', 'hint', 'help'],
     sys_id: gr.getUniqueValue(),
     name: gr.getValue('name') || '',
     element: gr.getValue('element') || '',
@@ -140,6 +221,23 @@ function serializeRecord(gr) {
     plural: gr.getValue('plural') || '',
     hint: gr.getValue('hint') || '',
     help: gr.getValue('help') || '',
+    language: gr.getValue('language') || '',
+    scope: resolveScope(gr)
+  };
+}
+
+function serializeChoiceRecord(gr) {
+  return {
+    recordType: 'choice',
+    sourceTable: 'sys_choice',
+    editableFields: ['label'],
+    sys_id: gr.getUniqueValue(),
+    name: gr.getValue('name') || '',
+    element: gr.getValue('element') || '',
+    label: gr.getValue('label') || '',
+    value: gr.getValue('value') || '',
+    dependent_value: gr.getValue('dependent_value') || '',
+    sequence: gr.getValue('sequence') || '',
     language: gr.getValue('language') || '',
     scope: resolveScope(gr)
   };
@@ -173,6 +271,11 @@ function buildSearchQuery(term) {
     return field + 'LIKE' + encodedTerm;
   });
   return clauses.join('^OR');
+}
+
+function buildChoiceSearchQuery(term) {
+  var encodedTerm = term.replace(/\^/g, '');
+  return 'labelLIKE' + encodedTerm;
 }
 
 function sanitizeSearchTerm(term) {

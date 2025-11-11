@@ -1,7 +1,7 @@
 api.controller = function($scope) {
   var c = this;
   c.data = c.data || {};
-  var editableFields = ['label', 'plural', 'hint', 'help'];
+  var defaultEditableFields = ['label', 'plural', 'hint', 'help'];
 
   c.state = {
     searchTerm: '',
@@ -78,7 +78,8 @@ api.controller = function($scope) {
       return false;
     }
 
-    return editableFields.some(function(field) {
+    var fields = getEditableFields(result);
+    return fields.some(function(field) {
       return (result.__draft[field] || '') !== (result[field] || '');
     });
   };
@@ -88,7 +89,7 @@ api.controller = function($scope) {
       return;
     }
 
-    result.__draft = buildDraft(result);
+    result.__draft = buildDraft(result, getEditableFields(result));
     result.__message = '';
     result.__error = '';
   };
@@ -104,7 +105,10 @@ api.controller = function($scope) {
 
     var payload = {
       action: 'update',
-      record: angular.extend({sys_id: result.sys_id}, result.__draft)
+      record: angular.extend(
+        {sys_id: result.sys_id, recordType: result.recordType},
+        result.__draft
+      )
     };
 
     console.log('[TM2] Saving translation for', result.sys_id, payload.record);
@@ -132,7 +136,8 @@ api.controller = function($scope) {
 
         var updatedRecord = updateResponse.record || {};
 
-        editableFields.forEach(function(field) {
+        var fields = getEditableFields(result);
+        fields.forEach(function(field) {
           if (updatedRecord.hasOwnProperty(field)) {
             result[field] = updatedRecord[field] || '';
           } else {
@@ -140,7 +145,15 @@ api.controller = function($scope) {
           }
         });
 
-        result.__draft = buildDraft(result);
+        if (angular.isArray(updatedRecord.editableFields) && updatedRecord.editableFields.length) {
+          result.editableFields = updatedRecord.editableFields;
+        }
+        if (updatedRecord.recordType) {
+          result.recordType = updatedRecord.recordType;
+        }
+
+        result.__editableFields = getEditableFields(result);
+        result.__draft = buildDraft(result, result.__editableFields);
         result.__message = 'Changes saved.';
       })
       .catch(function() {
@@ -153,7 +166,8 @@ api.controller = function($scope) {
 
   function mapResults(records) {
     return records.map(function(record) {
-      record.__draft = buildDraft(record);
+      record.__editableFields = getEditableFields(record);
+      record.__draft = buildDraft(record, record.__editableFields);
       record.__saving = false;
       record.__message = '';
       record.__error = '';
@@ -161,12 +175,23 @@ api.controller = function($scope) {
     });
   }
 
-  function buildDraft(record) {
+  function buildDraft(record, editableFields) {
     var draft = {};
-    editableFields.forEach(function(field) {
+    var fields = editableFields || getEditableFields(record);
+    fields.forEach(function(field) {
       draft[field] = (record && record[field]) || '';
     });
     return draft;
+  }
+
+  function getEditableFields(record) {
+    if (record && Array.isArray(record.__editableFields) && record.__editableFields.length) {
+      return record.__editableFields;
+    }
+    if (record && Array.isArray(record.editableFields) && record.editableFields.length) {
+      return record.editableFields;
+    }
+    return defaultEditableFields;
   }
 
   function invokeUpdateRequest(payload) {

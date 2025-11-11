@@ -228,6 +228,17 @@
     }
   }
 
+  .tm2-choice-value {
+    display: inline-block;
+    font-family: Consolas, 'Courier New', monospace;
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+    padding: 0.05rem 0.5rem;
+    border-radius: 6px;
+    font-size: 1.4rem;
+    text-transform: none;
+  }
+
   .tm2-entry-meta {
     display: flex;
     flex-wrap: wrap;
@@ -289,7 +300,7 @@
     }
 
     span {
-      font-size: 2rem;
+      font-size: 1.2rem;
     }
   }
 

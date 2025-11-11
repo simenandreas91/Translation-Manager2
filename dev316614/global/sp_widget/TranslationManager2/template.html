@@ -5,7 +5,7 @@
         <span class="tm2-card__icon fa fa-language" aria-hidden="true"></span>
         <div>
           <h2 class="tm2-card__title">Translation Helper</h2>
-          <p class="tm2-card__subtitle">Search field labels by translated text</p>
+          <p class="tm2-card__subtitle">Search field labels and choice options by translated text</p>
         </div>
       </div>
       <div class="tm2-card__meta">
@@ -69,40 +69,71 @@
     <div class="tm2-card tm2-result-card" ng-repeat="result in c.state.results track by result.sys_id">
       <div class="tm2-card__header">
         <div class="tm2-card__heading">
-          <span class="tm2-card__icon fa fa-tag" aria-hidden="true"></span>
+          <span
+            class="tm2-card__icon fa"
+            ng-class="result.recordType === 'choice' ? 'fa-list-ul' : 'fa-tag'"
+            aria-hidden="true"></span>
           <div class="tm2-entry-title">
             <h3 ng-bind="result.label || '(no label)'"></h3>
-            <small ng-bind="result.element"></small>
+            <small ng-if="result.recordType === 'choice'">
+              <span ng-bind="result.element || '(no element)'"></span>
+              <span> value </span>
+              <span class="tm2-choice-value" ng-bind="result.value || 'n/a'"></span>
+            </small>
+            <small ng-if="result.recordType !== 'choice'" ng-bind="result.element"></small>
           </div>
         </div>
         <div class="tm2-entry-meta">
+          <span class="tm2-chip tm2-chip--ghost" title="Source" ng-bind="result.recordType === 'choice' ? 'Choice' : 'Field label'"></span>
           <span class="tm2-chip" title="Table" ng-bind="result.name"></span>
           <span class="tm2-chip" title="Language" ng-bind="result.language || 'n/a'"></span>
           <span class="tm2-chip" title="Scope" ng-bind="result.scope || 'n/a'"></span>
         </div>
       </div>
 
-      <div class="tm2-card__body">
-        <div class="tm2-section-label">
-          <strong>Translation values</strong>
-          <span>Update the localized copy and preview changes live.</span>
+      <div class="tm2-card__body" ng-switch="result.recordType">
+        <div ng-switch-when="choice">
+          <div class="tm2-section-label">
+            <strong>Choice translation</strong>
+            <span>Update the localized label shown for this option.</span>
+          </div>
+          <div class="tm2-field-grid">
+            <div class="form-group">
+              <label>Choice label</label>
+              <input type="text" class="form-control" ng-model="result.__draft.label" ng-disabled="result.__saving" />
+            </div>
+            <div class="form-group">
+              <label>Value</label>
+              <input type="text" class="form-control" ng-model="result.value" readonly />
+            </div>
+            <div class="form-group" ng-if="result.dependent_value">
+              <label>Dependent value</label>
+              <input type="text" class="form-control" ng-model="result.dependent_value" readonly />
+            </div>
+          </div>
         </div>
-        <div class="tm2-field-grid">
-          <div class="form-group">
-            <label>Label</label>
-            <input type="text" class="form-control" ng-model="result.__draft.label" ng-disabled="result.__saving" />
+        <div ng-switch-default>
+          <div class="tm2-section-label">
+            <strong>Translation values</strong>
+            <span>Update the localized copy and preview changes live.</span>
           </div>
-          <div class="form-group">
-            <label>Plural</label>
-            <input type="text" class="form-control" ng-model="result.__draft.plural" ng-disabled="result.__saving" />
-          </div>
-          <div class="form-group">
-            <label>Hint</label>
-            <textarea class="form-control" rows="2" ng-model="result.__draft.hint" ng-disabled="result.__saving"></textarea>
-          </div>
-          <div class="form-group">
-            <label>Help</label>
-            <textarea class="form-control" rows="3" ng-model="result.__draft.help" ng-disabled="result.__saving"></textarea>
+          <div class="tm2-field-grid">
+            <div class="form-group">
+              <label>Label</label>
+              <input type="text" class="form-control" ng-model="result.__draft.label" ng-disabled="result.__saving" />
+            </div>
+            <div class="form-group">
+              <label>Plural</label>
+              <input type="text" class="form-control" ng-model="result.__draft.plural" ng-disabled="result.__saving" />
+            </div>
+            <div class="form-group">
+              <label>Hint</label>
+              <textarea class="form-control" rows="2" ng-model="result.__draft.hint" ng-disabled="result.__saving"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Help</label>
+              <textarea class="form-control" rows="3" ng-model="result.__draft.help" ng-disabled="result.__saving"></textarea>
+            </div>
           </div>
         </div>
 
