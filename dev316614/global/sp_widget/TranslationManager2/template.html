@@ -116,7 +116,17 @@
   </div>
 
   <div class="tm2-results" ng-if="c.state.results.length">
-    <div class="tm2-card tm2-result-card" ng-repeat="result in c.state.results track by result.sys_id">
+    <div class="tm2-results__header">
+      <div class="tm2-results__title">
+        <span class="tm2-results__eyebrow">Search results</span>
+        <h3 class="tm2-results__count">
+          {{c.state.results.length}} {{c.state.results.length === 1 ? 'record' : 'records'}} found
+        </h3>
+        <p class="tm2-results__hint">Review matches below and update translations inline.</p>
+      </div>
+    </div>
+    <div class="tm2-results__list">
+      <div class="tm2-card tm2-result-card" ng-repeat="result in c.state.results track by result.sys_id">
       <div class="tm2-card__header tm2-card__header--result">
         <div class="tm2-card__heading">
           <span
@@ -252,6 +262,7 @@
           <span class="fa fa-exclamation-circle" aria-hidden="true"></span>
           <span ng-bind="result.__error"></span>
         </div>
+      </div>
       </div>
     </div>
   </div>

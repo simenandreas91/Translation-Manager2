@@ -162,9 +162,8 @@ function searchMessages(term, limit) {
 function searchTranslatedText(term, limit) {
   var records = [];
   var gr = new GlideRecordSecure('sys_translated_text');
-  var encodedQuery = buildTranslatedSearchQuery(term);
 
-  gr.addEncodedQuery(encodedQuery);
+  gr.addQuery('value', term);
   gr.orderBy('tablename');
   gr.orderBy('fieldname');
   gr.setLimit(limit || 50);
@@ -459,11 +458,6 @@ function buildSearchQuery(term) {
 function buildChoiceSearchQuery(term) {
   var encodedTerm = term.replace(/\^/g, '');
   return 'labelLIKE' + encodedTerm;
-}
-
-function buildTranslatedSearchQuery(term) {
-  var encodedTerm = term.replace(/\^/g, '');
-  return 'valueLIKE' + encodedTerm;
 }
 
 function sanitizeSearchTerm(term) {
