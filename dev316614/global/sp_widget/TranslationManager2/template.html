@@ -96,10 +96,10 @@
 
   <div class="tm2-results" ng-if="c.state.results.length">
     <div class="tm2-card tm2-result-card" ng-repeat="result in c.state.results track by result.sys_id">
-      <div class="tm2-card__header">
+      <div class="tm2-card__header tm2-card__header--result">
         <div class="tm2-card__heading">
           <span
-            class="tm2-card__icon fa"
+            class="tm2-card__icon tm2-card__icon--result fa"
             ng-class="{
               'fa-list-ul': result.recordType === 'choice',
               'fa-commenting-o': result.recordType === 'message',
