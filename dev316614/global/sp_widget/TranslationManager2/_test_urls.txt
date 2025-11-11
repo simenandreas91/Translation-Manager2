@@ -1,0 +1,4 @@
+https://dev316614.service-now.com/$sp.do?id=sp-preview&sys_id=7238668bc3c532906b68770d0501318b
+https://dev316614.service-now.com/sp_config?id=translation_manager2
+https://dev316614.service-now.com/sp?id=translation_manager2
+https://dev316614.service-now.com/esc?id=translation_manager2

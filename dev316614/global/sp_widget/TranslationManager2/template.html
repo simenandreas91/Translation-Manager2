@@ -1,0 +1,145 @@
+<div class="tm2-widget">
+  <div class="tm2-card tm2-search-card">
+    <div class="tm2-card__header">
+      <div class="tm2-card__heading">
+        <span class="tm2-card__icon fa fa-language" aria-hidden="true"></span>
+        <div>
+          <h2 class="tm2-card__title">Translation Helper</h2>
+          <p class="tm2-card__subtitle">Search field labels by translated text</p>
+        </div>
+      </div>
+      <div class="tm2-card__meta">
+        <span class="tm2-chip tm2-chip--ghost" ng-if="c.state.lastSearchTerm">
+          <span class="fa fa-history" aria-hidden="true"></span>
+          <span>Last: "<span ng-bind="c.state.lastSearchTerm"></span>"</span>
+        </span>
+        <span class="tm2-card__badge" ng-if="c.state.results.length">{{c.state.results.length}} {{c.state.results.length === 1 ? 'match' : 'matches'}}</span>
+      </div>
+    </div>
+
+    <form class="tm2-search" ng-submit="c.search()">
+      <div class="tm2-field-row">
+        <div class="form-group tm2-table-input">
+          <label for="tm2-table-input">Table</label>
+          <input
+            id="tm2-table-input"
+            type="text"
+            class="form-control"
+            placeholder="e.g. incident"
+            ng-model="c.state.tableName"
+            ng-disabled="c.state.isSearching" />
+        </div>
+
+        <div class="form-group tm2-search-input">
+          <label for="tm2-search-input">Translated text</label>
+          <div class="input-group tm2-search__input">
+            <input
+              id="tm2-search-input"
+              type="text"
+              class="form-control"
+              placeholder="e.g. kort beskrivelse"
+              ng-model="c.state.searchTerm"
+              ng-disabled="c.state.isSearching" />
+            <span class="input-group-btn">
+              <button class="btn btn-primary" type="submit" ng-disabled="c.state.isSearching">
+                <span ng-if="c.state.isSearching" class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+                <span ng-if="!c.state.isSearching" class="fa fa-search" aria-hidden="true"></span>
+                <span class="sr-only">Search</span>
+              </button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="tm2-status tm2-status--error" role="alert" ng-if="c.state.error">
+      <span class="fa fa-exclamation-circle" aria-hidden="true"></span>
+      <span ng-bind="c.state.error"></span>
+    </div>
+    <div class="tm2-status tm2-status--info" role="status" ng-if="!c.state.error && c.state.message">
+      <span class="fa fa-info-circle" aria-hidden="true"></span>
+      <span>
+        <span ng-bind="c.state.message"></span>
+        <span ng-if="c.state.lastSearchTerm"> for "<span ng-bind="c.state.lastSearchTerm"></span>"</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="tm2-results" ng-if="c.state.results.length">
+    <div class="tm2-card tm2-result-card" ng-repeat="result in c.state.results track by result.sys_id">
+      <div class="tm2-card__header">
+        <div class="tm2-card__heading">
+          <span class="tm2-card__icon fa fa-tag" aria-hidden="true"></span>
+          <div class="tm2-entry-title">
+            <h3 ng-bind="result.label || '(no label)'"></h3>
+            <small ng-bind="result.element"></small>
+          </div>
+        </div>
+        <div class="tm2-entry-meta">
+          <span class="tm2-chip" title="Table" ng-bind="result.name"></span>
+          <span class="tm2-chip" title="Language" ng-bind="result.language || 'n/a'"></span>
+          <span class="tm2-chip" title="Scope" ng-bind="result.scope || 'n/a'"></span>
+        </div>
+      </div>
+
+      <div class="tm2-card__body">
+        <div class="tm2-section-label">
+          <strong>Translation values</strong>
+          <span>Update the localized copy and preview changes live.</span>
+        </div>
+        <div class="tm2-field-grid">
+          <div class="form-group">
+            <label>Label</label>
+            <input type="text" class="form-control" ng-model="result.__draft.label" ng-disabled="result.__saving" />
+          </div>
+          <div class="form-group">
+            <label>Plural</label>
+            <input type="text" class="form-control" ng-model="result.__draft.plural" ng-disabled="result.__saving" />
+          </div>
+          <div class="form-group">
+            <label>Hint</label>
+            <textarea class="form-control" rows="2" ng-model="result.__draft.hint" ng-disabled="result.__saving"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Help</label>
+            <textarea class="form-control" rows="3" ng-model="result.__draft.help" ng-disabled="result.__saving"></textarea>
+          </div>
+        </div>
+
+        <div class="tm2-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            ng-click="c.saveResult(result)"
+            ng-disabled="!c.hasChanges(result) || result.__saving">
+            <span ng-if="result.__saving" class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+            <span ng-if="!result.__saving" class="fa fa-save" aria-hidden="true"></span>
+            <span>Save</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-default"
+            ng-click="c.resetDraft(result)"
+            ng-disabled="result.__saving || !c.hasChanges(result)">
+            Reset
+          </button>
+        </div>
+
+        <div class="tm2-inline-message text-success" ng-if="result.__message">
+          <span class="fa fa-check-circle" aria-hidden="true"></span>
+          <span ng-bind="result.__message"></span>
+        </div>
+        <div class="tm2-inline-message text-danger" ng-if="result.__error">
+          <span class="fa fa-exclamation-circle" aria-hidden="true"></span>
+          <span ng-bind="result.__error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tm2-empty" ng-if="!c.state.isSearching && !c.state.results.length && !c.state.error && !c.state.message">
+    <span class="fa fa-compass"></span>
+    <h4>Find translations faster</h4>
+    <p>Point the helper at a table, type part of the translated text, and we will surface matching labels instantly.</p>
+  </div>
+</div>
