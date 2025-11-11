@@ -198,27 +198,6 @@
       }
 
       .tm2-table-input {
-        transition: all 0.25s ease;
-
-        &--collapsed {
-          max-height: 0;
-          padding-top: 0;
-          padding-bottom: 0;
-          margin-bottom: 0;
-          opacity: 0;
-          border: none;
-          pointer-events: none;
-        }
-      }
-
-      .tm2-table-input__hint {
-        display: block;
-        margin-top: 0.35rem;
-        font-size: 1.2rem;
-        color: #64748b;
-      }
-
-      .tm2-table-input {
         max-width: 320px;
       }
 

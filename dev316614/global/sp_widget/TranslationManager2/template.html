@@ -42,7 +42,7 @@
       <div class="tm2-field-row">
         <div
           class="form-group tm2-table-input"
-          ng-class="{'tm2-table-input--collapsed': c.state.sourceType !== 'table'}">
+          ng-if="c.state.sourceType === 'table'">
           <label for="tm2-table-input">Table</label>
           <input
             id="tm2-table-input"
@@ -50,10 +50,7 @@
             class="form-control"
             placeholder="e.g. incident"
             ng-model="c.state.tableName"
-            ng-disabled="c.state.isSearching || c.state.sourceType !== 'table'" />
-          <small class="tm2-table-input__hint" ng-if="c.state.sourceType !== 'table'">
-            Switch to Fields &amp; choices to select a table.
-          </small>
+            ng-disabled="c.state.isSearching" />
         </div>
 
         <div class="form-group tm2-search-input" ng-class="{'tm2-search-input--full': c.state.sourceType === 'message'}">
@@ -116,9 +113,8 @@
               <span> value </span>
               <span class="tm2-choice-value" ng-bind="result.value || 'n/a'"></span>
             </small>
-            <small ng-if="result.recordType === 'message'">
-              <span>Key:</span>
-              <span class="tm2-message-key" ng-bind="result.key || 'n/a'"></span>
+            <small ng-if="result.recordType === 'message' && result.name">
+              <span class="tm2-message-key" ng-bind="result.name"></span>
             </small>
             <small ng-if="result.recordType !== 'choice' && result.recordType !== 'message'" ng-bind="result.element"></small>
           </div>
@@ -162,10 +158,6 @@
             <div class="form-group tm2-field--wide">
               <label>Message</label>
               <textarea class="form-control" rows="3" ng-model="result.__draft.message" ng-disabled="result.__saving"></textarea>
-            </div>
-            <div class="form-group">
-              <label>Key</label>
-              <input type="text" class="form-control" ng-model="result.key" readonly />
             </div>
           </div>
         </div>
