@@ -9,10 +9,6 @@
         </div>
       </div>
       <div class="tm2-card__meta">
-        <span class="tm2-chip tm2-chip--ghost" ng-if="c.state.lastSearchTerm">
-          <span class="fa fa-history" aria-hidden="true"></span>
-          <span>Last: "<span ng-bind="c.state.lastSearchTerm"></span>"</span>
-        </span>
         <span class="tm2-card__badge" ng-if="c.state.results.length">{{c.state.results.length}} {{c.state.results.length === 1 ? 'match' : 'matches'}}</span>
       </div>
     </div>
@@ -106,13 +102,6 @@
       <span class="fa fa-exclamation-circle" aria-hidden="true"></span>
       <span ng-bind="c.state.error"></span>
     </div>
-    <div class="tm2-status tm2-status--info" role="status" ng-if="!c.state.error && c.state.message">
-      <span class="fa fa-info-circle" aria-hidden="true"></span>
-      <span>
-        <span ng-bind="c.state.message"></span>
-        <span ng-if="c.state.lastSearchTerm"> for "<span ng-bind="c.state.lastSearchTerm"></span>"</span>
-      </span>
-    </div>
   </div>
 
   <div class="tm2-results" ng-if="c.state.results.length">
@@ -123,6 +112,65 @@
           {{c.state.results.length}} {{c.state.results.length === 1 ? 'record' : 'records'}} found
         </h3>
         <p class="tm2-results__hint">Review matches below and update translations inline.</p>
+      </div>
+      <div class="tm2-bulk-panel">
+        <div class="tm2-bulk-panel__header">
+          <span class="fa fa-clone" aria-hidden="true"></span>
+          <div>
+            <strong>Change all</strong>
+            <small>Apply one value to every matching record.</small>
+          </div>
+        </div>
+        <p class="tm2-bulk-panel__empty" ng-if="!c.bulk.options.length">
+          Run a search to load editable fields that can be updated in bulk.
+        </p>
+        <div class="tm2-bulk-panel__field">
+          <label for="tm2-bulk-field">Field</label>
+          <select
+            id="tm2-bulk-field"
+            class="form-control"
+            ng-model="c.bulk.field"
+            ng-options="field as c.getBulkFieldLabel(field) for field in c.bulk.options"
+            ng-disabled="c.bulk.applying || c.state.isSearching">
+            <option value="">Select field</option>
+          </select>
+        </div>
+        <div class="tm2-bulk-panel__input">
+          <label for="tm2-bulk-value">New value</label>
+          <textarea
+            id="tm2-bulk-value"
+            class="form-control"
+            rows="2"
+            placeholder="Enter replacement text once"
+            ng-model="c.bulk.value"
+            ng-disabled="c.bulk.applying || c.state.isSearching"></textarea>
+        </div>
+        <div class="tm2-bulk-panel__actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            ng-click="c.applyBulkChange()"
+            ng-disabled="c.bulk.applying || !c.bulk.field">
+            <span ng-if="c.bulk.applying" class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+            <span ng-if="!c.bulk.applying" class="fa fa-magic" aria-hidden="true"></span>
+            <span>Change all</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-default"
+            ng-click="c.clearBulkInput()"
+            ng-disabled="c.bulk.applying">
+            Clear
+          </button>
+        </div>
+        <div class="tm2-bulk-panel__message text-success" ng-if="c.bulk.message">
+          <span class="fa fa-check-circle" aria-hidden="true"></span>
+          <span ng-bind="c.bulk.message"></span>
+        </div>
+        <div class="tm2-bulk-panel__message text-danger" ng-if="c.bulk.error">
+          <span class="fa fa-exclamation-circle" aria-hidden="true"></span>
+          <span ng-bind="c.bulk.error"></span>
+        </div>
       </div>
     </div>
     <div class="tm2-results__list">

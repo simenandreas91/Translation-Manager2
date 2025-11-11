@@ -1,4 +1,4 @@
-api.controller = function($scope) {
+api.controller = function($scope, $q) {
   var c = this;
   c.data = c.data || {};
   var defaultEditableFields = ['label', 'plural', 'hint', 'help'];
@@ -14,6 +14,17 @@ api.controller = function($scope) {
     sourceType: c.data.sourceType || 'table'
   };
 
+  c.bulk = {
+    field: '',
+    value: '',
+    options: [],
+    applying: false,
+    appliedCount: 0,
+    failedCount: 0,
+    message: '',
+    error: ''
+  };
+
   c.search = function() {
     c.state.error = '';
     c.state.message = '';
@@ -24,11 +35,13 @@ api.controller = function($scope) {
     if (!term) {
       c.state.error = 'Enter text to search.';
       c.state.results = [];
+      refreshBulkOptions();
       return;
     }
     if (sourceType === 'table' && !tableName) {
       c.state.error = 'Select a table to search.';
       c.state.results = [];
+      refreshBulkOptions();
       return;
     }
 
@@ -41,6 +54,7 @@ api.controller = function($scope) {
         if (payload.serverError) {
           c.state.error = payload.serverError;
           c.state.results = [];
+          refreshBulkOptions();
           console.warn('[TM2] Server error:', payload.serverError);
           return;
         }
@@ -50,6 +64,7 @@ api.controller = function($scope) {
         }
 
         c.state.results = mapResults(payload.results || []);
+        refreshBulkOptions();
         console.log('[TM2] Search response:', payload);
         if (payload.selectedTable) {
           c.state.tableName = payload.selectedTable;
@@ -113,7 +128,7 @@ api.controller = function($scope) {
 
   c.saveResult = function(result) {
     if (!result || !c.hasChanges(result) || result.__saving) {
-      return;
+      return $q.when();
     }
 
     result.__saving = true;
@@ -129,7 +144,7 @@ api.controller = function($scope) {
     };
 
     console.log('[TM2] Saving translation for', result.sys_id, payload.record);
-    invokeUpdateRequest(payload)
+    return invokeUpdateRequest(payload)
       .then(function(response) {
         console.log('[TM2] Raw update response object:', response);
         var data = response && (response.data || response.result) ? (response.data || response.result) : (response || {});
@@ -178,6 +193,82 @@ api.controller = function($scope) {
       })
       .finally(function() {
         result.__saving = false;
+      });
+  };
+
+  c.applyBulkChange = function() {
+    if (!c.state.results.length || c.bulk.applying) {
+      return;
+    }
+
+    c.bulk.error = '';
+    c.bulk.message = '';
+
+    var field = c.bulk.field;
+    if (!field) {
+      c.bulk.error = 'Select a field to update.';
+      return;
+    }
+
+    var value = c.bulk.value || '';
+    var targets = c.state.results.filter(function(result) {
+      return result &&
+        !result.__saving &&
+        result.__draft &&
+        Object.prototype.hasOwnProperty.call(result.__draft, field);
+    });
+
+    if (!targets.length) {
+      c.bulk.error = 'No results can be updated with "' + field + '".';
+      return;
+    }
+
+    c.bulk.applying = true;
+    c.bulk.appliedCount = 0;
+    c.bulk.failedCount = 0;
+
+    targets.reduce(function(sequence, result) {
+      return sequence.then(function() {
+        result.__draft[field] = value;
+        return c.saveResult(result).then(function() {
+          if (result.__error) {
+            c.bulk.failedCount += 1;
+          } else {
+            c.bulk.appliedCount += 1;
+          }
+        });
+      });
+    }, $q.when())
+      .then(function() {
+        if (c.bulk.appliedCount) {
+          c.bulk.message = 'Updated ' + c.bulk.appliedCount + ' ' + (c.bulk.appliedCount === 1 ? 'record' : 'records') + '.';
+        }
+        if (c.bulk.failedCount) {
+          c.bulk.error = c.bulk.failedCount + ' ' + (c.bulk.failedCount === 1 ? 'record failed' : 'records failed') + ' to update.';
+        }
+      })
+      .catch(function() {
+        c.bulk.error = 'Unable to apply changes to all records.';
+      })
+      .finally(function() {
+        c.bulk.applying = false;
+      });
+  };
+
+  c.clearBulkInput = function() {
+    c.bulk.value = '';
+    c.bulk.message = '';
+    c.bulk.error = '';
+  };
+
+  c.getBulkFieldLabel = function(field) {
+    if (!field) {
+      return '';
+    }
+    return String(field)
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function(char) {
+        return char.toUpperCase();
       });
   };
 
@@ -234,6 +325,48 @@ api.controller = function($scope) {
           }
         });
       });
+  }
+
+  function refreshBulkOptions() {
+    var seen = {};
+    var options = [];
+    c.bulk.message = '';
+    c.bulk.error = '';
+    c.bulk.appliedCount = 0;
+    c.bulk.failedCount = 0;
+    c.bulk.applying = false;
+
+    (c.state.results || []).forEach(function(result) {
+      var fields = getEditableFields(result);
+      fields.forEach(function(field) {
+        if (!seen[field]) {
+          seen[field] = true;
+          options.push(field);
+        }
+      });
+    });
+
+    options.sort();
+    c.bulk.options = options;
+
+    if (!options.length) {
+      c.bulk.field = '';
+      return;
+    }
+
+    if (options.indexOf(c.bulk.field) === -1) {
+      c.bulk.field = pickDefaultBulkField(options);
+    }
+  }
+
+  function pickDefaultBulkField(options) {
+    var priority = ['value', 'message', 'label', 'plural', 'hint', 'help'];
+    for (var i = 0; i < priority.length; i++) {
+      if (options.indexOf(priority[i]) > -1) {
+        return priority[i];
+      }
+    }
+    return options[0];
   }
 
 };
