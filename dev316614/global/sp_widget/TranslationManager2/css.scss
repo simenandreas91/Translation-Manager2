@@ -150,6 +150,39 @@
   .tm2-search-card {
     padding: 0;
 
+    .tm2-source-toggle {
+      display: inline-flex;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem 0;
+      flex-wrap: wrap;
+    }
+
+    .tm2-source-toggle__btn {
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: #fff;
+      color: #0f172a;
+      border-radius: 30px;
+      padding: 0.4rem 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      text-transform: none;
+      transition: all 0.2s ease;
+
+      &.active {
+        background: linear-gradient(120deg, #2563eb, #0ea5e9);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+
     .tm2-search {
       padding: 1.25rem 1.5rem 1.5rem;
 
@@ -165,11 +198,50 @@
       }
 
       .tm2-table-input {
+        transition: all 0.25s ease;
+
+        &--collapsed {
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          margin-bottom: 0;
+          opacity: 0;
+          border: none;
+          pointer-events: none;
+        }
+      }
+
+      .tm2-table-input__hint {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.2rem;
+        color: #64748b;
+      }
+
+      .tm2-table-input {
         max-width: 320px;
       }
 
       .tm2-search-input {
         flex: 2 1 320px;
+      }
+
+      .tm2-search-input--full {
+        flex: 1 1 100%;
+      }
+
+      .tm2-message-mode-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+        color: #0f4c81;
+        font-weight: 600;
+        font-size: 1.3rem;
+
+        .fa {
+          color: #2563eb;
+        }
       }
     }
   }
@@ -239,6 +311,13 @@
     text-transform: none;
   }
 
+  .tm2-message-key {
+    display: inline-block;
+    font-weight: 700;
+    color: #0f172a;
+    margin-left: 0.35rem;
+  }
+
   .tm2-entry-meta {
     display: flex;
     flex-wrap: wrap;
@@ -284,6 +363,10 @@
       padding: 0.85rem 0.9rem;
       border-radius: 10px;
       border: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .tm2-field--wide {
+      grid-column: 1 / -1;
     }
   }
 

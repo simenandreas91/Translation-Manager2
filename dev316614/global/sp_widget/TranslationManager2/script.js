@@ -8,6 +8,7 @@
   data.updateResponse = {};
   data.serverError = '';
   data.debugMessages = [];
+  data.sourceType = 'table';
   data.lastInput = input || {};
 
   try {
@@ -29,13 +30,24 @@ function handleAction() {
   if (input.action === 'search') {
     var term = sanitizeSearchTerm(input.searchTerm);
     var tableName = sanitizeTableName(input.tableName);
+    var sourceType = sanitizeSourceType(input.sourceType || data.sourceType);
     data.searchTerm = term;
     data.selectedTable = tableName;
+    data.sourceType = sourceType;
     logInfo('TM2 search term after sanitize: [' + term + ']');
     logInfo('TM2 table filter: [' + tableName + ']');
+    logInfo('TM2 source type: [' + sourceType + ']');
 
     if (!term) {
       data.errorMessage = 'Enter text to search for translations.';
+      return;
+    }
+
+    if (sourceType === 'message') {
+      data.appliedTables = [];
+      var messageRecordsOnly = searchMessages(term, data.maxResults);
+      data.results = messageRecordsOnly;
+      data.errorMessage = '';
       return;
     }
 
@@ -64,6 +76,8 @@ function handleAction() {
     var recordType = (input.record && input.record.recordType) || '';
     if (recordType === 'choice') {
       data.updateResponse = updateChoice(input.record);
+    } else if (recordType === 'message') {
+      data.updateResponse = updateMessage(input.record);
     } else {
       data.updateResponse = updateDocumentation(input.record);
     }
@@ -114,6 +128,24 @@ function searchChoices(term, tableNames, limit) {
   }
 
   logInfo('TM2 choice search returned ' + records.length + ' records.');
+  return records;
+}
+
+function searchMessages(term, limit) {
+  var records = [];
+  var gr = new GlideRecordSecure('sys_ui_message');
+
+  gr.addQuery('message', term);
+  gr.orderBy('key');
+  gr.orderBy('language');
+  gr.setLimit(limit || 50);
+  gr.query();
+
+  while (gr.next()) {
+    records.push(serializeMessageRecord(gr));
+  }
+
+  logInfo('TM2 message search returned ' + records.length + ' records.');
   return records;
 }
 
@@ -209,6 +241,52 @@ function updateChoice(payload) {
   return response;
 }
 
+function updateMessage(payload) {
+  var response = {
+    success: false,
+    message: 'Unexpected error.'
+  };
+
+  if (!payload || !payload.sys_id) {
+    response.message = 'Missing record identifier.';
+    return response;
+  }
+
+  var gr = new GlideRecord('sys_ui_message');
+  if (!gr.get(payload.sys_id)) {
+    response.message = 'Record not found.';
+    return response;
+  }
+
+  var editableFields = ['message'];
+  var hasChanges = false;
+
+  editableFields.forEach(function(field) {
+    if (payload.hasOwnProperty(field) && payload[field] !== undefined && payload[field] !== null) {
+      gr.setValue(field, payload[field]);
+      hasChanges = true;
+    }
+  });
+
+  if (!hasChanges) {
+    response.message = 'No changes detected.';
+    return response;
+  }
+
+  gr.setWorkflow(false);
+  var updateResult = gr.update();
+
+  if (!updateResult) {
+    response.message = 'Unable to update record.';
+    return response;
+  }
+
+  response.success = true;
+  response.message = 'Translation updated.';
+  response.record = serializeMessageRecord(gr);
+  return response;
+}
+
 function serializeDocumentationRecord(gr) {
   return {
     recordType: 'field',
@@ -238,6 +316,20 @@ function serializeChoiceRecord(gr) {
     value: gr.getValue('value') || '',
     dependent_value: gr.getValue('dependent_value') || '',
     sequence: gr.getValue('sequence') || '',
+    language: gr.getValue('language') || '',
+    scope: resolveScope(gr)
+  };
+}
+
+function serializeMessageRecord(gr) {
+  return {
+    recordType: 'message',
+    sourceTable: 'sys_ui_message',
+    editableFields: ['message'],
+    sys_id: gr.getUniqueValue(),
+    name: 'sys_ui_message',
+    key: gr.getValue('key') || '',
+    message: gr.getValue('message') || '',
     language: gr.getValue('language') || '',
     scope: resolveScope(gr)
   };
@@ -297,6 +389,14 @@ function sanitizeTableName(tableName) {
   return String(tableName)
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '');
+}
+
+function sanitizeSourceType(sourceType) {
+  if (!sourceType) {
+    return 'table';
+  }
+  var normalized = String(sourceType).toLowerCase();
+  return normalized === 'message' ? 'message' : 'table';
 }
 
 function logInfo(msg) {

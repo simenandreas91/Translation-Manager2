@@ -10,7 +10,8 @@ api.controller = function($scope) {
     isSearching: false,
     results: [],
     message: '',
-    error: ''
+    error: '',
+    sourceType: c.data.sourceType || 'table'
   };
 
   c.search = function() {
@@ -19,12 +20,13 @@ api.controller = function($scope) {
 
     var term = (c.state.searchTerm || '').trim();
     var tableName = (c.state.tableName || '').trim();
+    var sourceType = c.state.sourceType || 'table';
     if (!term) {
       c.state.error = 'Enter text to search.';
       c.state.results = [];
       return;
     }
-    if (!tableName) {
+    if (sourceType !== 'message' && !tableName) {
       c.state.error = 'Select a table to search.';
       c.state.results = [];
       return;
@@ -33,7 +35,7 @@ api.controller = function($scope) {
     console.log('[TM2] Searching for translations:', term, 'in table', tableName);
     c.state.isSearching = true;
     c.server
-      .get({action: 'search', searchTerm: term, tableName: tableName})
+      .get({action: 'search', searchTerm: term, tableName: tableName, sourceType: sourceType})
       .then(function(response) {
         var payload = (response || {}).data || {};
         if (payload.serverError) {
@@ -51,6 +53,9 @@ api.controller = function($scope) {
         console.log('[TM2] Search response:', payload);
         if (payload.selectedTable) {
           c.state.tableName = payload.selectedTable;
+        }
+        if (payload.sourceType) {
+          c.state.sourceType = payload.sourceType;
         }
 
         if (payload.errorMessage) {
@@ -71,6 +76,17 @@ api.controller = function($scope) {
       .finally(function() {
         c.state.isSearching = false;
       });
+  };
+
+  c.setSourceType = function(type) {
+    var normalized = type === 'message' ? 'message' : 'table';
+    if (c.state.sourceType === normalized) {
+      return;
+    }
+    c.state.sourceType = normalized;
+    if (normalized === 'message') {
+      c.state.tableName = '';
+    }
   };
 
   c.hasChanges = function(result) {
